@@ -1,0 +1,71 @@
+version: "3"
+
+services:
+  gateway:
+    build:
+      context: ./gateway
+      dockerfile: Dockerfile
+    container_name: gateway
+    volumes:
+      - ./gateway:/app
+#      - /app/node_modules
+    ports:
+      - "80:3000"
+      - "9229:9229"
+    depends_on:
+      - zookeeper
+      - kafka
+      - receiver
+    networks:
+      - network_test
+
+  receiver:
+    build:
+      context: ./receiver
+      dockerfile: Dockerfile
+    container_name: receiver
+    volumes:
+      - ./receiver:/app
+#      - /app/node_modules
+    ports:
+      - "34000:3000"
+      - "9230:9230"
+    depends_on:
+      - zookeeper
+      - kafka
+    networks:
+      - network_test
+
+  zookeeper:
+    image: confluent/zookeeper
+    container_name: zookeeper
+    hostname: zookeeper
+    ports:
+      - "2181:2181"
+    environment:
+      zk_id: "1"
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ALLOW_ANONYMOUS_LOGIN: "yes"
+    networks:
+      - network_test
+
+  kafka:
+    image: confluent/kafka
+    container_name: kafka
+    hostname: kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 0
+      KAFKA_ADVERTISED_HOST_NAME: kafka
+      KAFKA_ADVERTISED_PORT: 9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+    networks:
+      - network_test
+
+networks:
+  network_test:
